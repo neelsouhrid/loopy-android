@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dark Theme Colors -->
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="background_dark">#FF121212</color>
+    <color name="surface_dark">#FF1E1E1E</color>
+    <color name="surface_variant">#FF2D2D2D</color>
+    <color name="primary">#FF4CAF50</color>
+    <color name="primary_variant">#FF388E3C</color>
+    <color name="secondary">#FFFFC107</color>
+    <color name="secondary_variant">#FFFFB300</color>
+    <color name="error">#FFCF6679</color>
+    <color name="on_primary">#FF000000</color>
+    <color name="on_secondary">#FF000000</color>
+    <color name="on_background">#FFFFFFFF</color>
+    <color name="on_surface">#FFFFFFFF</color>
+    <color name="on_error">#FF000000</color>
+    
+    <!-- Track Colors -->
+    <color name="track_empty">#FF3D3D3D</color>
+    <color name="track_recorded">#FF4CAF50</color>
+    <color name="track_selected">#FF8BC34A</color>
+    <color name="track_playing">#FFFFC107</color>
+    <color name="track_recording">#FFF44336</color>
+</resources>
