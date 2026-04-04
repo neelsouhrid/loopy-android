@@ -173,9 +173,21 @@ class LooperRepository @Inject constructor(
         // Also send to MIDI keyboard
         playbackJob = scope.launch {
             var lastLoopPosition = 0L
+            var programChangesSent = false
+            
             while (_playbackState.value == PlaybackState.PLAYING) {
                 val currentTime = System.nanoTime() / 1000
                 val loopPosition = currentTime % longestDuration
+                
+                // Send program changes (tone) at start of each loop
+                if (!programChangesSent || loopPosition < lastLoopPosition) {
+                    tracks.forEach { track ->
+                        track.programChange?.let { program ->
+                            midiManager.programChange(track.id, program)
+                        }
+                    }
+                    programChangesSent = true
+                }
                 
                 // Check for loop restart
                 if (loopPosition < lastLoopPosition) {
