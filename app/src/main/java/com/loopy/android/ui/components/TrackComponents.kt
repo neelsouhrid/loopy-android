@@ -25,8 +25,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.Canvas
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.VolumeOff
+import androidx.compose.material3.Icon
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.pointerInput
 import com.loopy.android.domain.model.Track
 import com.loopy.android.ui.theme.TrackEmpty
 import com.loopy.android.ui.theme.TrackPlaying
@@ -48,14 +54,17 @@ fun TrackButton(
     playbackPosition: Float,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
+    onTwoFingerTap: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val baseTrackColor = track.color?.let { Color(it) } ?: TrackRecorded
     val backgroundColor by animateColorAsState(
         targetValue = when {
+            track.isMuted -> Color.DarkGray
             isRecording -> TrackRecording
             isPlaying -> TrackPlaying
             track.isNotEmpty && isSelected -> TrackSelected
-            track.isNotEmpty && !isSelected -> TrackRecorded
+            track.isNotEmpty && !isSelected -> baseTrackColor
             isSelected -> TrackSelected.copy(alpha = 0.6f)
             else -> TrackEmpty
         },
@@ -83,6 +92,19 @@ fun TrackButton(
                 color = borderColor,
                 shape = RoundedCornerShape(12.dp)
             )
+            .pointerInput(track.id) {
+                awaitPointerEventScope {
+                    while (true) {
+                        val event = awaitPointerEvent(PointerEventPass.Main)
+                        if (event.type == PointerEventType.Press) {
+                            if (event.changes.count { it.pressed } >= 2) {
+                                onTwoFingerTap()
+                                event.changes.forEach { it.consume() }
+                            }
+                        }
+                    }
+                }
+            }
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = onLongClick
@@ -102,6 +124,23 @@ fun TrackButton(
                     size = Size(radius, radius)
                 )
             }
+        }
+        
+        if (track.isMuted) {
+            Icon(
+                imageVector = Icons.Default.VolumeOff,
+                contentDescription = "Muted",
+                modifier = Modifier.align(Alignment.TopEnd),
+                tint = Color.White.copy(alpha = 0.6f)
+            )
+        }
+        
+        track.emoji?.let { emojiStr ->
+            Text(
+                text = emojiStr, 
+                modifier = Modifier.align(Alignment.TopStart),
+                fontSize = 16.sp
+            )
         }
     
         Column(
@@ -139,6 +178,7 @@ fun TrackGrid(
     playbackPosition: Float,
     onTrackClick: (Int) -> Unit,
     onTrackLongClick: (Int) -> Unit,
+    onTrackTwoFingerTap: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
     LazyVerticalGrid(
@@ -156,6 +196,7 @@ fun TrackGrid(
                 playbackPosition = playbackPosition,
                 onClick = { onTrackClick(i) },
                 onLongClick = { onTrackLongClick(i) },
+                onTwoFingerTap = { onTrackTwoFingerTap(i) },
                 modifier = Modifier.fillMaxSize()
             )
         }

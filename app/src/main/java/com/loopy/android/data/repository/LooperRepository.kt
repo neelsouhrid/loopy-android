@@ -285,16 +285,9 @@ class LooperRepository @Inject constructor(
             }
         }
         
-        // Start audio playback
-        audioEngine.startPlayback(
-            events = allEvents,
-            startTimeMicros = (System.nanoTime() / 1000) - globalPlayheadMicros,
-            loopDurationMicros = longestDuration
-        )
-        
-        // Also send to MIDI keyboard
+        // Also send to MIDI keyboard and trigger AudioEngine samples
         playbackJob = scope.launch {
-            var lastLoopPosition = 0L
+            var lastLoopPosition = -1L
             var programChangesSent = false
             var lastCurrentTime = System.nanoTime() / 1000
             
@@ -336,26 +329,39 @@ class LooperRepository @Inject constructor(
                     midiManager.allNotesOff()
                 }
                 
-                // Check which notes should be playing at this position
+                // Check which notes should be playing at this precise delta slice
                 tracks.forEach { track ->
+                    if (track.isMuted) return@forEach
+                    
                     if (_playbackState.value == PlaybackState.RECORDING && track.id == _selectedTrackIndex.value && _mode.value != LooperMode.OVERDUB) {
                         return@forEach // Skip playing the actively recording track unless in overdub
                     }
                     
                     track.events.forEach { event ->
-                        if (event.type == MidiEventType.NOTE_ON && event.note != null && event.velocity != null) {
-                            val eventTime = (event.timestampMicros / tempoRatio).toLong()
-                            val noteDuration = (100000 / tempoRatio).toLong() // 100ms default scaled
-                            
-                            if (loopPosition >= eventTime && loopPosition < eventTime + noteDuration) {
+                        val eventTime = (event.timestampMicros / tempoRatio).toLong()
+                        
+                        val shouldTrigger = if (lastLoopPosition == -1L) {
+                            eventTime <= loopPosition
+                        } else if (loopPosition >= lastLoopPosition) {
+                            eventTime > lastLoopPosition && eventTime <= loopPosition
+                        } else {
+                            // Wrapped around
+                            eventTime > lastLoopPosition || eventTime <= loopPosition
+                        }
+                        
+                        if (shouldTrigger) {
+                            if (event.type == MidiEventType.NOTE_ON && event.note != null && event.velocity != null) {
                                 midiManager.noteOn(track.id, event.note, event.velocity)
+                                audioEngine.playNote(event.note, event.velocity)
+                            } else if (event.type == MidiEventType.NOTE_OFF && event.note != null) {
+                                midiManager.noteOff(track.id, event.note, event.velocity ?: 0)
                             }
                         }
                     }
                 }
                 
                 lastLoopPosition = loopPosition
-                delay(50) // Check every 50ms
+                delay(10) // Check frequently for accurate playback without stutter
             }
         }
     }
@@ -461,6 +467,7 @@ class LooperRepository @Inject constructor(
                         if (_playbackState.value == PlaybackState.RECORDING) {
                             recordingEvents.add(MidiEvent(MidiEventType.NOTE_ON, channel, d1, d2, timestampMicros = timestamp))
                         }
+                        audioEngine.playNote(d1, d2)
                         midiManager.noteOn(_selectedTrackIndex.value, d1, d2)
                     } else { // Velocity 0 == Note Off
                         currentlyPressedNotes.remove(d1)
@@ -595,6 +602,42 @@ class LooperRepository @Inject constructor(
                 sessionDataStore.setCurrentSession(sessionId)
                 _currentSession.value = session
             }
+        }
+    }
+
+    fun toggleTrackMute(index: Int) {
+        val session = _currentSession.value ?: return
+        val currentTrack = session.tracks[index]
+        val updatedTrack = currentTrack.copy(isMuted = !currentTrack.isMuted)
+        
+        val updatedTracks = session.tracks.toMutableList()
+        updatedTracks[index] = updatedTrack
+        
+        _currentSession.value = session.copy(
+            tracks = updatedTracks,
+            updatedAt = System.currentTimeMillis()
+        )
+        
+        scope.launch {
+            _currentSession.value?.let { sessionDataStore.saveSessions(listOf(it)) }
+        }
+    }
+
+    fun updateTrackMetadata(index: Int, name: String?, color: Long?, emoji: String?) {
+        val session = _currentSession.value ?: return
+        val currentTrack = session.tracks[index]
+        val updatedTrack = currentTrack.copy(name = name, color = color, emoji = emoji)
+        
+        val updatedTracks = session.tracks.toMutableList()
+        updatedTracks[index] = updatedTrack
+        
+        _currentSession.value = session.copy(
+            tracks = updatedTracks,
+            updatedAt = System.currentTimeMillis()
+        )
+        
+        scope.launch {
+            _currentSession.value?.let { sessionDataStore.saveSessions(listOf(it)) }
         }
     }
 

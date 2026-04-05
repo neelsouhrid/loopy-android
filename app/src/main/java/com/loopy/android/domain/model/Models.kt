@@ -30,7 +30,10 @@ data class Track(
     val name: String? = null,
     val events: List<MidiEvent> = emptyList(),
     val programChange: Int? = null, // MIDI program change for tone
-    val durationMicros: Long = 0L
+    val durationMicros: Long = 0L,
+    val isMuted: Boolean = false,
+    val color: Long? = null,
+    val emoji: String? = null
 ) {
     val isEmpty: Boolean get() = events.isEmpty()
     val isNotEmpty: Boolean get() = events.isNotEmpty()

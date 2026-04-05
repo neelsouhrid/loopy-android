@@ -1,7 +1,11 @@
 package com.loopy.android.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -13,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -75,6 +80,8 @@ class LooperViewModel @Inject constructor(
     fun clearTrack(index: Int) = looperRepository.clearTrack(index)
     fun clearAllTracks() = looperRepository.clearAllTracks()
     fun toggleMute() = looperRepository.toggleMute()
+    fun toggleTrackMute(index: Int) = looperRepository.toggleTrackMute(index)
+    fun updateTrackMetadata(index: Int, name: String?, color: Long?, emoji: String?) = looperRepository.updateTrackMetadata(index, name, color, emoji)
     fun createSession(name: String) = looperRepository.createSession(name)
     fun switchSession(id: String) = looperRepository.switchSession(id)
     fun renameSession(id: String, name: String) = looperRepository.renameSession(id, name)
@@ -117,7 +124,7 @@ fun LooperScreen(
     val canRedo by viewModel.canRedo.collectAsState()
     var showSessionsSheet by remember { mutableStateOf(false) }
     var showExportDialog by remember { mutableStateOf(false) }
-    var showClearConfirmDialog by remember { mutableStateOf(false) }
+    var showTrackSettingsDialog by remember { mutableStateOf<Int?>(null) }
     var showNewSessionDialog by remember { mutableStateOf(false) }
     var showTempoDialog by remember { mutableStateOf(false) }
     var temporaryTempo by remember { mutableStateOf("120") }
@@ -213,7 +220,16 @@ fun LooperScreen(
                             text = { Text("Clear All Tracks") },
                             onClick = {
                                 showMenu = false
-                                showClearConfirmDialog = true
+                                viewModel.selectTrack(selectedTrackIndex)
+                                showTrackSettingsDialog = selectedTrackIndex
+                            },
+                            leadingIcon = { Icon(Icons.Outlined.Handyman, null) }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Clear All Tracks") },
+                            onClick = {
+                                showMenu = false
+                                viewModel.clearAllTracks()
                             },
                             leadingIcon = { Icon(Icons.Outlined.Delete, null, tint = ErrorRed) }
                         )
@@ -334,7 +350,10 @@ fun LooperScreen(
                 onTrackClick = { viewModel.selectTrack(it) },
                 onTrackLongClick = { 
                     viewModel.selectTrack(it)
-                    showClearConfirmDialog = true
+                    showTrackSettingsDialog = it
+                },
+                onTrackTwoFingerTap = {
+                    viewModel.toggleTrackMute(it)
                 },
                 modifier = Modifier.weight(1f)
             )
@@ -438,28 +457,86 @@ fun LooperScreen(
         }
     }
 
-    // Clear confirmation dialog
-    if (showClearConfirmDialog) {
-        AlertDialog(
-            onDismissRequest = { showClearConfirmDialog = false },
-            title = { Text("Clear Track?") },
-            text = { Text("Are you sure you want to clear this track? This cannot be undone.") },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        viewModel.clearTrack(selectedTrackIndex)
-                        showClearConfirmDialog = false
+    // Track settings dialog
+    showTrackSettingsDialog?.let { trackIndex ->
+        val track = currentSession?.tracks?.getOrNull(trackIndex)
+        if (track != null) {
+            var trackName by remember { mutableStateOf(track.name ?: "") }
+            var trackEmoji by remember { mutableStateOf(track.emoji ?: "") }
+            var trackColor by remember { mutableStateOf(track.color ?: 0x00000000L) }
+            
+            val colors = listOf(
+                0x00000000L to "Default",
+                0xFFD32F2F to "Red",
+                0xFF1976D2 to "Blue",
+                0xFF388E3C to "Green",
+                0xFFFBC02D to "Yellow",
+                0xFF7B1FA2 to "Purple",
+                0xFFE64A19 to "Orange"
+            )
+
+            AlertDialog(
+                onDismissRequest = { showTrackSettingsDialog = null },
+                title = { Text("Track ${trackIndex + 1} Settings") },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedTextField(
+                            value = trackName,
+                            onValueChange = { trackName = it },
+                            label = { Text("Rename Track") },
+                            singleLine = true
+                        )
+                        OutlinedTextField(
+                            value = trackEmoji,
+                            onValueChange = { trackEmoji = it.take(2) },
+                            label = { Text("Emoji") },
+                            singleLine = true
+                        )
+                        Text("Track Color", fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp))
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.horizontalScroll(rememberScrollState())
+                        ) {
+                            colors.forEach { (cValue, cName) ->
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .background(if (cValue == 0x00000000L) Color.DarkGray else Color(cValue), CircleShape)
+                                        .border(2.dp, if (trackColor == cValue) Color.White else Color.Transparent, CircleShape)
+                                        .clickable { trackColor = cValue }
+                                )
+                            }
+                        }
                     }
-                ) {
-                    Text("Clear", color = ErrorRed)
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        viewModel.updateTrackMetadata(
+                            trackIndex, 
+                            name = trackName.takeIf { it.isNotBlank() },
+                            color = trackColor.takeIf { it != 0x00000000L },
+                            emoji = trackEmoji.takeIf { it.isNotBlank() }
+                        )
+                        showTrackSettingsDialog = null
+                    }) {
+                        Text("Save")
+                    }
+                },
+                dismissButton = {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        TextButton(onClick = {
+                            viewModel.clearTrack(trackIndex)
+                            showTrackSettingsDialog = null
+                        }) {
+                            Text("Clear Track", color = ErrorRed)
+                        }
+                        TextButton(onClick = { showTrackSettingsDialog = null }) {
+                            Text("Cancel")
+                        }
+                    }
                 }
-            },
-            dismissButton = {
-                TextButton(onClick = { showClearConfirmDialog = false }) {
-                    Text("Cancel")
-                }
-            }
-        )
+            )
+        }
     }
 
     // Sessions bottom sheet

@@ -594,7 +594,7 @@ public final class DaggerLoopyApplication_HiltComponents_SingletonC {
           return (T) new LoopyMidiManager(ApplicationContextModule_ProvideContextFactory.provideContext(singletonCImpl.applicationContextModule));
 
           case 3: // com.loopy.android.data.audio.AudioEngine 
-          return (T) new AudioEngine();
+          return (T) new AudioEngine(ApplicationContextModule_ProvideContextFactory.provideContext(singletonCImpl.applicationContextModule));
 
           case 4: // com.loopy.android.data.export.ExportManager 
           return (T) new ExportManager(ApplicationContextModule_ProvideContextFactory.provideContext(singletonCImpl.applicationContextModule));
