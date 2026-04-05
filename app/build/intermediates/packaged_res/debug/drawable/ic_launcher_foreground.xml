@@ -1,0 +1,20 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108"
+    android:tint="#FFFFFF">
+    <!-- Circular loop icon representing the Loopy app -->
+    <group
+        android:pivotX="54"
+        android:pivotY="54">
+        <!-- Outer ring -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M54,24C37.4,24 24,37.4 24,54s13.4,30 30,30s30,-13.4 30,-30S70.6,24 54,24zM54,76c-12.2,0 -22,-9.8 -22,-22s9.8,-22 22,-22s22,9.8 22,22S66.2,76 54,76z"/>
+        <!-- Play arrow inside -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M46,42l20,12l-20,12z"/>
+    </group>
+</vector>

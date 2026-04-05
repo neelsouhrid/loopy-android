@@ -15,7 +15,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
-import java.io.RandomAccessFile
+import java.io.ByteArrayOutputStream
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.math.pow
@@ -142,7 +142,7 @@ class ExportManager @Inject constructor(
             
             // Tempo meta event
             trackData.write(0x00) // Delta time
-            trackData.write(byteArrayOf(0xFF, 0x51, 0x03)) // Tempo meta
+            trackData.write(byteArrayOf(0xFF.toByte(), 0x51, 0x03)) // Tempo meta
             trackData.write(byteArrayOf(
                 (microsecondsPerBeat shr 16).toByte(),
                 (microsecondsPerBeat shr 8).toByte(),
@@ -163,7 +163,7 @@ class ExportManager @Inject constructor(
             
             // End of track
             trackData.write(0x00)
-            trackData.write(byteArrayOf(0xFF, 0x2F, 0x00))
+            trackData.write(byteArrayOf(0xFF.toByte(), 0x2F, 0x00))
             
             // Write track chunk
             fos.write(byteArrayOf(0x4D, 0x54, 0x72, 0x6B)) // "MTrk"
@@ -226,8 +226,4 @@ class ExportManager @Inject constructor(
     }
 
     data class Quadruple<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
-}
-
-class ByteArrayOutputStream : java.io.ByteArrayOutputStream() {
-    fun toByteArray(): ByteArray = buf.copyOf(count)
 }

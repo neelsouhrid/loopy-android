@@ -23,4 +23,7 @@
     <color name="track_selected">#FF8BC34A</color>
     <color name="track_playing">#FFFFC107</color>
     <color name="track_recording">#FFF44336</color>
+    
+    <!-- Launcher Icon Background -->
+    <color name="ic_launcher_background">#FF388E3C</color>
 </resources>

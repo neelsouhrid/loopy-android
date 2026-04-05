@@ -27,6 +27,7 @@ enum class MidiEventType {
  */
 data class Track(
     val id: Int, // Track number 0-9
+    val name: String? = null,
     val events: List<MidiEvent> = emptyList(),
     val programChange: Int? = null, // MIDI program change for tone
     val durationMicros: Long = 0L
@@ -41,6 +42,7 @@ data class Track(
 data class Session(
     val id: String = UUID.randomUUID().toString(),
     val name: String,
+    val tempo: Int = 120,
     val tracks: List<Track> = List(10) { Track(id = it) },
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis()
@@ -59,9 +61,10 @@ enum class PlaybackState {
 }
 
 /**
- * Current mode (Record vs Play)
+ * Current mode (Record vs Play vs Overdub)
  */
 enum class LooperMode {
     RECORD,
-    PLAY
+    PLAY,
+    OVERDUB
 }

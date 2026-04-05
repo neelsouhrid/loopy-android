@@ -1,7 +1,7 @@
 package com.loopy.android.data.repository
 
 import com.loopy.android.data.datastore.SessionDataStore
-import com.loopy.android.data.midi.MidiManager
+import com.loopy.android.data.midi.LoopyMidiManager
 import com.loopy.android.data.audio.AudioEngine
 import com.loopy.android.data.export.ExportManager
 import com.loopy.android.domain.model.LooperMode
@@ -25,7 +25,7 @@ import javax.inject.Singleton
 @Singleton
 class LooperRepository @Inject constructor(
     private val sessionDataStore: SessionDataStore,
-    private val midiManager: MidiManager,
+    private val midiManager: LoopyMidiManager,
     private val audioEngine: AudioEngine,
     private val exportManager: ExportManager
 ) {
@@ -34,6 +34,17 @@ class LooperRepository @Inject constructor(
     // Sessions
     val sessions = sessionDataStore.sessions
     val currentSessionId = sessionDataStore.currentSessionId
+
+    // MIDI connection state
+    val isMidiConnected: StateFlow<Boolean> = midiManager.isConnected
+    val connectedDeviceName: StateFlow<String?> = midiManager.connectedDeviceName
+    val availableDevices = midiManager.availableDevices
+    
+    fun refreshMidiDevices() = midiManager.refreshDevices()
+    
+    fun connectMidiDevice(deviceInfo: android.media.midi.MidiDeviceInfo) {
+        midiManager.openDevice(deviceInfo)
+    }
     
     // Current session state
     private val _currentSession = MutableStateFlow<Session?>(null)
@@ -57,6 +68,81 @@ class LooperRepository @Inject constructor(
     private var recordingEvents = mutableListOf<MidiEvent>()
     private var playbackJob: Job? = null
     private var currentProgramChange: Int? = null
+    private var lastMidiStatus: Int = 0
+
+    private var globalPlayheadMicros: Long = 0L
+
+    private val undoStack = mutableListOf<Session>()
+    private val redoStack = mutableListOf<Session>()
+    
+    private val _canUndo = MutableStateFlow(false)
+    val canUndo: StateFlow<Boolean> = _canUndo.asStateFlow()
+    
+    private val _canRedo = MutableStateFlow(false)
+    val canRedo: StateFlow<Boolean> = _canRedo.asStateFlow()
+    
+    private fun saveStateToUndoStack() {
+        _currentSession.value?.let { current ->
+            undoStack.add(current)
+            if (undoStack.size > 10) {
+                undoStack.removeAt(0)
+            }
+            redoStack.clear()
+            _canUndo.value = undoStack.isNotEmpty()
+            _canRedo.value = redoStack.isNotEmpty()
+        }
+    }
+    
+    fun undo() {
+        if (undoStack.isNotEmpty() && _playbackState.value == PlaybackState.STOPPED) {
+            _currentSession.value?.let { current ->
+                redoStack.add(current)
+                if (redoStack.size > 10) redoStack.removeAt(0)
+            }
+            
+            val previousState = undoStack.removeAt(undoStack.lastIndex)
+            _currentSession.value = previousState
+            
+            _canUndo.value = undoStack.isNotEmpty()
+            _canRedo.value = redoStack.isNotEmpty()
+            
+            scope.launch { sessionDataStore.saveSessions(listOf(previousState)) }
+        }
+    }
+    
+    fun redo() {
+        if (redoStack.isNotEmpty() && _playbackState.value == PlaybackState.STOPPED) {
+            _currentSession.value?.let { current ->
+                undoStack.add(current)
+                if (undoStack.size > 10) undoStack.removeAt(0)
+            }
+            
+            val nextState = redoStack.removeAt(redoStack.lastIndex)
+            _currentSession.value = nextState
+            
+            _canUndo.value = undoStack.isNotEmpty()
+            _canRedo.value = redoStack.isNotEmpty()
+            
+            scope.launch { sessionDataStore.saveSessions(listOf(nextState)) }
+        }
+    }
+
+    fun resetPlayback() {
+        if (_playbackState.value == PlaybackState.RECORDING) return
+        stop()
+        globalPlayheadMicros = 0L
+        _playbackPosition.value = 0f
+    }
+    private val _midiIndicator = MutableStateFlow(false)
+    val midiIndicator: StateFlow<Boolean> = _midiIndicator.asStateFlow()
+
+    private val _playbackPosition = MutableStateFlow(0f)
+    val playbackPosition: StateFlow<Float> = _playbackPosition.asStateFlow()
+
+    private val _currentNotesDisplay = MutableStateFlow<String?>(null)
+    val currentNotesDisplay: StateFlow<String?> = _currentNotesDisplay.asStateFlow()
+
+    private val currentlyPressedNotes = mutableSetOf<Int>()
 
     // MIDI input callback
     init {
@@ -99,11 +185,27 @@ class LooperRepository @Inject constructor(
         }
     }
 
+    fun setMode(newMode: LooperMode) {
+        if (_playbackState.value == PlaybackState.STOPPED) {
+            if (newMode == LooperMode.RECORD || newMode == LooperMode.OVERDUB) {
+                globalPlayheadMicros = 0L
+                _playbackPosition.value = 0f
+            }
+            _mode.value = newMode
+        }
+    }
+
+    // Keep for backward compatibility if needed, or remove and update calls
     fun toggleMode() {
         if (_playbackState.value == PlaybackState.STOPPED) {
             _mode.value = when (_mode.value) {
                 LooperMode.RECORD -> LooperMode.PLAY
-                LooperMode.PLAY -> LooperMode.RECORD
+                LooperMode.PLAY -> LooperMode.OVERDUB
+                LooperMode.OVERDUB -> {
+                    globalPlayheadMicros = 0L
+                    _playbackPosition.value = 0f
+                    LooperMode.RECORD
+                }
             }
         }
     }
@@ -111,7 +213,7 @@ class LooperRepository @Inject constructor(
     fun startStop() {
         when (_playbackState.value) {
             PlaybackState.STOPPED -> {
-                if (_mode.value == LooperMode.RECORD) {
+                if (_mode.value == LooperMode.RECORD || _mode.value == LooperMode.OVERDUB) {
                     startRecording()
                 } else {
                     startPlayback()
@@ -124,17 +226,31 @@ class LooperRepository @Inject constructor(
     }
 
     private fun startRecording() {
+        globalPlayheadMicros = 0L
+        _playbackPosition.value = 0f
+        
         _playbackState.value = PlaybackState.RECORDING
         recordingStartTime = System.nanoTime() / 1000 // microseconds
         recordingEvents.clear()
         
-        // If not first track, start backing tracks
         val session = _currentSession.value ?: return
         val track = session.tracks[_selectedTrackIndex.value]
         
-        if (track.isNotEmpty) {
-            // Play backing tracks
-            playTracks(session.tracks.filterIndexed { i, t -> i != _selectedTrackIndex.value && t.isNotEmpty })
+        if (_mode.value == LooperMode.OVERDUB && track.isNotEmpty) {
+            // In overdub mode, keep existing events
+            recordingEvents.addAll(track.events)
+            
+            // Play all non-empty tracks including the one we are overdubbing
+            val nonEmptyTracks = session.tracks.filter { it.isNotEmpty }
+            if (nonEmptyTracks.isNotEmpty()) {
+                playTracks(nonEmptyTracks)
+            }
+        } else {
+            // Standard record mode: clear the track and play only backing tracks
+            val backingTracks = session.tracks.filterIndexed { i, t -> i != _selectedTrackIndex.value && t.isNotEmpty }
+            if (backingTracks.isNotEmpty()) {
+                playTracks(backingTracks)
+            }
         }
     }
 
@@ -152,13 +268,19 @@ class LooperRepository @Inject constructor(
         val longestDuration = tracks.maxOfOrNull { it.durationMicros } ?: return
         if (longestDuration == 0L) return
         
-        // Collect all events with absolute timestamps
-        val allEvents = mutableListOf<Pair<Int, Int>>() // note, velocity
+        // Collect all events with timestamps as AudioEngine.PlaybackEvent
+        val allEvents = mutableListOf<AudioEngine.PlaybackEvent>()
         
         tracks.forEach { track ->
             track.events.forEach { event ->
                 if (event.type == MidiEventType.NOTE_ON && event.note != null && event.velocity != null) {
-                    allEvents.add(Pair(event.note, event.velocity))
+                    allEvents.add(
+                        AudioEngine.PlaybackEvent(
+                            note = event.note,
+                            velocity = event.velocity,
+                            timestampMicros = event.timestampMicros
+                        )
+                    )
                 }
             }
         }
@@ -166,7 +288,7 @@ class LooperRepository @Inject constructor(
         // Start audio playback
         audioEngine.startPlayback(
             events = allEvents,
-            startTimeMicros = System.nanoTime() / 1000,
+            startTimeMicros = (System.nanoTime() / 1000) - globalPlayheadMicros,
             loopDurationMicros = longestDuration
         )
         
@@ -174,10 +296,29 @@ class LooperRepository @Inject constructor(
         playbackJob = scope.launch {
             var lastLoopPosition = 0L
             var programChangesSent = false
+            var lastCurrentTime = System.nanoTime() / 1000
             
-            while (_playbackState.value == PlaybackState.PLAYING) {
+            while (_playbackState.value == PlaybackState.PLAYING || _playbackState.value == PlaybackState.RECORDING) {
+                // Track current session tempo to scale playback length
+                val currentTempo = _currentSession.value?.tempo ?: 120
+                val tempoRatio = currentTempo.toDouble() / 120.0
+                val scaledDuration = (longestDuration / tempoRatio).toLong()
+                
                 val currentTime = System.nanoTime() / 1000
-                val loopPosition = currentTime % longestDuration
+                val delta = currentTime - lastCurrentTime
+                lastCurrentTime = currentTime
+                globalPlayheadMicros += delta
+                
+                val loopPosition = globalPlayheadMicros % Math.max(1L, scaledDuration)
+                
+                _playbackPosition.value = (loopPosition.toFloat() / Math.max(1L, scaledDuration).toFloat())
+                
+                if (_playbackState.value == PlaybackState.RECORDING && longestDuration > 0) {
+                    val actualElapsed = currentTime - recordingStartTime
+                    if (actualElapsed >= scaledDuration) {
+                        scope.launch(Dispatchers.Main) { startStop() }
+                    }
+                }
                 
                 // Send program changes (tone) at start of each loop
                 if (!programChangesSent || loopPosition < lastLoopPosition) {
@@ -197,15 +338,17 @@ class LooperRepository @Inject constructor(
                 
                 // Check which notes should be playing at this position
                 tracks.forEach { track ->
+                    if (_playbackState.value == PlaybackState.RECORDING && track.id == _selectedTrackIndex.value && _mode.value != LooperMode.OVERDUB) {
+                        return@forEach // Skip playing the actively recording track unless in overdub
+                    }
+                    
                     track.events.forEach { event ->
                         if (event.type == MidiEventType.NOTE_ON && event.note != null && event.velocity != null) {
-                            val eventTime = event.timestampMicros
-                            val noteDuration = 100000 // 100ms default note duration
+                            val eventTime = (event.timestampMicros / tempoRatio).toLong()
+                            val noteDuration = (100000 / tempoRatio).toLong() // 100ms default scaled
                             
                             if (loopPosition >= eventTime && loopPosition < eventTime + noteDuration) {
                                 midiManager.noteOn(track.id, event.note, event.velocity)
-                            } else if (loopPosition < lastLoopPosition && currentTime < eventTime + noteDuration) {
-                                // Was playing before loop restart
                             }
                         }
                     }
@@ -229,8 +372,8 @@ class LooperRepository @Inject constructor(
         // Send MIDI panic
         midiManager.allNotesOff()
         
-        // If was recording, save the recording
-        if (_mode.value == LooperMode.RECORD && recordingEvents.isNotEmpty()) {
+        // If was recording or overdubbing, save the recording
+        if ((_mode.value == LooperMode.RECORD || _mode.value == LooperMode.OVERDUB) && recordingEvents.isNotEmpty()) {
             saveRecording()
         }
         
@@ -242,100 +385,144 @@ class LooperRepository @Inject constructor(
         }
     }
 
+    private fun updateNotesDisplay() {
+        if (currentlyPressedNotes.isEmpty()) {
+            _currentNotesDisplay.value = null
+            return
+        }
+        val noteNames = arrayOf("C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B")
+        val display = currentlyPressedNotes.sorted().joinToString(" • ") { note ->
+            "${noteNames[note % 12]}${note / 12 - 1}"
+        }
+        _currentNotesDisplay.value = display
+    }
+
+    private fun triggerMidiIndicator() {
+        scope.launch {
+            _midiIndicator.value = true
+            delay(100)
+            _midiIndicator.value = false
+        }
+    }
+
     private fun handleMidiInput(data: ByteArray, offset: Int, count: Int) {
-        if (_playbackState.value != PlaybackState.RECORDING) return
-        if (data.isEmpty()) return
+        if (data.isEmpty() || count == 0) return
         
-        val status = data[offset].toInt() and 0xFF
-        val messageType = status and 0xF0
-        val channel = status and 0x0F
+        triggerMidiIndicator()
         
         val currentTime = System.nanoTime() / 1000 // microseconds
-        val timestamp = currentTime - recordingStartTime
+        var timestamp = currentTime - recordingStartTime
         
-        when (messageType) {
-            0x90 -> { // Note On
-                if (count >= 3) {
-                    val note = data[offset + 1].toInt() and 0xFF
-                    val velocity = data[offset + 2].toInt() and 0xFF
-                    
-                    if (velocity > 0) {
-                        val event = MidiEvent(
-                            type = MidiEventType.NOTE_ON,
-                            channel = channel,
-                            note = note,
-                            velocity = velocity,
-                            timestampMicros = timestamp
-                        )
-                        recordingEvents.add(event)
-                        
-                        // Also forward to keyboard
-                        midiManager.noteOn(_selectedTrackIndex.value, note, velocity)
-                    } else {
-                        // Note Off (velocity 0 = note off)
-                        val event = MidiEvent(
-                            type = MidiEventType.NOTE_OFF,
-                            channel = channel,
-                            note = note,
-                            velocity = 0,
-                            timestampMicros = timestamp
-                        )
-                        recordingEvents.add(event)
-                        midiManager.noteOff(_selectedTrackIndex.value, note, 0)
+        // In overdub mode, wrap timestamp to loop duration
+        if (_mode.value == LooperMode.OVERDUB) {
+            val session = _currentSession.value
+            val longestDuration = session?.longestTrackDuration ?: 0L
+            if (longestDuration > 0) {
+                timestamp = timestamp % longestDuration
+            }
+        }
+        
+        var i = offset
+        val end = offset + count
+        
+        while (i < end) {
+            val byte = data[i].toInt() and 0xFF
+            var status = byte
+            
+            if (byte >= 0x80) { // New Status Byte
+                lastMidiStatus = byte
+                status = byte
+                i++
+            } else {
+                // Running Status
+                status = lastMidiStatus
+            }
+            
+            if (status == 0) { i++; continue } // Invalid state
+            
+            val messageType = status and 0xF0
+            val channel = status and 0x0F
+            
+            val dataBytesNeeded = when(messageType) {
+                0x90, 0x80, 0xB0, 0xE0 -> 2
+                0xC0, 0xD0 -> 1
+                else -> 0
+            }
+            
+            if (dataBytesNeeded == 2 && i + 1 < end) {
+                val d1 = data[i].toInt() and 0xFF
+                val d2 = data[i+1].toInt() and 0xFF
+                i += 2
+                
+                if (messageType == 0x90) { // Note On
+                    if (d2 > 0) {
+                        currentlyPressedNotes.add(d1)
+                        updateNotesDisplay()
+                        if (_playbackState.value == PlaybackState.RECORDING) {
+                            recordingEvents.add(MidiEvent(MidiEventType.NOTE_ON, channel, d1, d2, timestampMicros = timestamp))
+                        }
+                        midiManager.noteOn(_selectedTrackIndex.value, d1, d2)
+                    } else { // Velocity 0 == Note Off
+                        currentlyPressedNotes.remove(d1)
+                        updateNotesDisplay()
+                        if (_playbackState.value == PlaybackState.RECORDING) {
+                            recordingEvents.add(MidiEvent(MidiEventType.NOTE_OFF, channel, d1, 0, timestampMicros = timestamp))
+                        }
+                        midiManager.noteOff(_selectedTrackIndex.value, d1, 0)
                     }
+                } else if (messageType == 0x80) { // Note Off
+                    currentlyPressedNotes.remove(d1)
+                    updateNotesDisplay()
+                    if (_playbackState.value == PlaybackState.RECORDING) {
+                        recordingEvents.add(MidiEvent(MidiEventType.NOTE_OFF, channel, d1, d2, timestampMicros = timestamp))
+                    }
+                    midiManager.noteOff(_selectedTrackIndex.value, d1, d2)
                 }
-            }
-            0x80 -> { // Note Off
-                if (count >= 3) {
-                    val note = data[offset + 1].toInt() and 0xFF
-                    val velocity = data[offset + 2].toInt() and 0xFF
-                    
-                    val event = MidiEvent(
-                        type = MidiEventType.NOTE_OFF,
-                        channel = channel,
-                        note = note,
-                        velocity = velocity,
-                        timestampMicros = timestamp
-                    )
-                    recordingEvents.add(event)
-                    midiManager.noteOff(_selectedTrackIndex.value, note, velocity)
+            } else if (dataBytesNeeded == 1 && i < end) {
+                val d1 = data[i].toInt() and 0xFF
+                if (messageType == 0xC0) { // Program Change
+                    currentProgramChange = d1
+                    midiManager.programChange(_selectedTrackIndex.value, d1)
                 }
-            }
-            0xB0 -> { // Control Change
-                if (count >= 3) {
-                    val controller = data[offset + 1].toInt() and 0xFF
-                    val value = data[offset + 2].toInt() and 0xFF
-                    
-                    val event = MidiEvent(
-                        type = MidiEventType.CONTROL_CHANGE,
-                        channel = channel,
-                        value = value,
-                        timestampMicros = timestamp
-                    )
-                    recordingEvents.add(event)
-                    
-                    // Forward CC to keyboard
-                    midiManager.controlChange(_selectedTrackIndex.value, controller, value)
-                }
-            }
-            0xC0 -> { // Program Change
-                if (count >= 2) {
-                    val program = data[offset + 1].toInt() and 0xFF
-                    currentProgramChange = program
-                    midiManager.programChange(_selectedTrackIndex.value, program)
-                }
+                i += 1
+            } else {
+                break 
             }
         }
     }
 
+
     private fun saveRecording() {
         val session = _currentSession.value ?: return
         
-        val duration = recordingEvents.maxOfOrNull { it.timestampMicros } ?: 0L
+        saveStateToUndoStack()
+        
+        // Calculate the elapsed recorded time
+        val elapsed = (System.nanoTime() / 1000) - recordingStartTime
+        val currentTempoRatio = session.tempo.toDouble() / 120.0
+        
+        // Scale the events back to 120 BPM absolute time to store in the array uniformly
+        val storedEvents = recordingEvents.map { it.copy(timestampMicros = (it.timestampMicros * currentTempoRatio).toLong()) }
+        
+        var combinedEvents = storedEvents
+        // If overdubbing, safely merge the new events with the existing ones!
+        if (_mode.value == LooperMode.OVERDUB) {
+            val existingEvents = session.tracks.find { it.id == _selectedTrackIndex.value }?.events ?: emptyList()
+            combinedEvents = (existingEvents + storedEvents).sortedBy { it.timestampMicros }
+        }
+        
+        // Determine track duration: use the existing longest duration (so loops remain synced),
+        // or if it's the first track, leave it at exact elapsed time allowing the user to precisely set it
+        val duration = if (session.longestTrackDuration > 0) {
+            session.longestTrackDuration
+        } else {
+            val scaledElapsed = (elapsed * currentTempoRatio).toLong()
+            scaledElapsed
+        }
         
         val updatedTrack = Track(
             id = _selectedTrackIndex.value,
-            events = recordingEvents.toList(),
+            events = combinedEvents,
             programChange = currentProgramChange,
             durationMicros = duration
         )
@@ -352,6 +539,8 @@ class LooperRepository @Inject constructor(
     fun clearTrack(index: Int) {
         val session = _currentSession.value ?: return
         
+        saveStateToUndoStack()
+        
         val updatedTrack = Track(id = index)
         val updatedTracks = session.tracks.toMutableList()
         updatedTracks[index] = updatedTrack
@@ -362,12 +551,16 @@ class LooperRepository @Inject constructor(
         )
         
         scope.launch {
-            sessionDataStore.saveSessions(listOf(_currentSession.value!!))
+            _currentSession.value?.let { sessionDataStore.saveSessions(listOf(it)) }
         }
     }
 
     fun clearAllTracks() {
         val session = _currentSession.value ?: return
+        
+        saveStateToUndoStack()
+        
+        resetPlayback()
         
         val updatedTracks = (0..9).map { Track(id = it) }
         
@@ -377,7 +570,7 @@ class LooperRepository @Inject constructor(
         )
         
         scope.launch {
-            sessionDataStore.saveSessions(listOf(_currentSession.value!!))
+            _currentSession.value?.let { sessionDataStore.saveSessions(listOf(it)) }
         }
     }
 
@@ -420,6 +613,19 @@ class LooperRepository @Inject constructor(
                 if (sessionId == _currentSession.value?.id) {
                     _currentSession.value = allSessions[index]
                 }
+            }
+        }
+    }
+
+    fun setTempo(newTempo: Int) {
+        val session = _currentSession.value ?: return
+        if (newTempo in 40..240) {
+            _currentSession.value = session.copy(
+                tempo = newTempo,
+                updatedAt = System.currentTimeMillis()
+            )
+            scope.launch {
+                sessionDataStore.saveSessions(listOf(_currentSession.value!!))
             }
         }
     }

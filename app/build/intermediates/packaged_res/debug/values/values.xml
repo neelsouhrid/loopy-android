@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="background_dark">#FF121212</color>
+    <color name="black">#FF000000</color>
+    <color name="error">#FFCF6679</color>
+    <color name="ic_launcher_background">#FF388E3C</color>
+    <color name="on_background">#FFFFFFFF</color>
+    <color name="on_error">#FF000000</color>
+    <color name="on_primary">#FF000000</color>
+    <color name="on_secondary">#FF000000</color>
+    <color name="on_surface">#FFFFFFFF</color>
+    <color name="primary">#FF4CAF50</color>
+    <color name="primary_variant">#FF388E3C</color>
+    <color name="secondary">#FFFFC107</color>
+    <color name="secondary_variant">#FFFFB300</color>
+    <color name="surface_dark">#FF1E1E1E</color>
+    <color name="surface_variant">#FF2D2D2D</color>
+    <color name="track_empty">#FF3D3D3D</color>
+    <color name="track_playing">#FFFFC107</color>
+    <color name="track_recorded">#FF4CAF50</color>
+    <color name="track_recording">#FFF44336</color>
+    <color name="track_selected">#FF8BC34A</color>
+    <color name="white">#FFFFFFFF</color>
+    <string name="app_name">Loopy</string>
+    <string name="audio_muted">Audio Muted</string>
+    <string name="audio_unmuted">Audio Unmuted</string>
+    <string name="cancel">Cancel</string>
+    <string name="clear">Clear</string>
+    <string name="clear_all">Clear All</string>
+    <string name="confirm_clear">Are you sure you want to clear this track?</string>
+    <string name="confirm_clear_all">Are you sure you want to clear ALL tracks? This cannot be undone!</string>
+    <string name="connect_midi">Connect MIDI Keyboard</string>
+    <string name="delete_session">Delete Session</string>
+    <string name="empty">Empty</string>
+    <string name="export">Export</string>
+    <string name="export_audio">Export Audio (MP3)</string>
+    <string name="export_failed">Export failed. Please try again.</string>
+    <string name="export_merged">Export Merged</string>
+    <string name="export_midi">Export MIDI</string>
+    <string name="export_separate">Export Separate</string>
+    <string name="export_success">Export successful!</string>
+    <string name="midi_connected">MIDI Connected</string>
+    <string name="midi_device">MIDI Device</string>
+    <string name="midi_not_connected">MIDI Not Connected</string>
+    <string name="new_session">New Session</string>
+    <string name="no_midi_device">No MIDI device found</string>
+    <string name="ok">OK</string>
+    <string name="play">Play</string>
+    <string name="playing">Playing</string>
+    <string name="record">Record</string>
+    <string name="recorded">Recorded</string>
+    <string name="recording">Recording</string>
+    <string name="rename_session">Rename Session</string>
+    <string name="save">Save</string>
+    <string name="select_track">Select Track</string>
+    <string name="session_name">Session Name</string>
+    <string name="sessions">Sessions</string>
+    <string name="settings">Settings</string>
+    <string name="stop">Stop</string>
+    <string name="track">Track %1$d</string>
+    <string name="untitled_session">Untitled Session</string>
+    <style name="Theme.LoopyAndroid" parent="android:Theme.Material.NoActionBar">
+        <item name="android:statusBarColor">@color/background_dark</item>
+        <item name="android:navigationBarColor">@color/background_dark</item>
+        <item name="android:windowBackground">@color/background_dark</item>
+    </style>
+</resources>

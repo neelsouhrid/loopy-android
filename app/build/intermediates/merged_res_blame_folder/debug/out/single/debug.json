@@ -1,0 +1,370 @@
+[
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_bb2.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/bb2.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_f6.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/f6.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_b1.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/b1.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_db2.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/db2.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_e1.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/e1.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_d7.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/d7.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_a3.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/a3.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_c2.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/c2.mp3"
+    },
+    {
+        "merged": "/Users/souhridpal/.gradle/daemon/8.2/com.loopy.android.app-merged_res-57:/mipmap-anydpi-v26_ic_launcher.xml.flat",
+        "source": "/Users/souhridpal/.gradle/daemon/8.2/com.loopy.android.app-main-59:/mipmap-anydpi-v26/ic_launcher.xml"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_eb2.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/eb2.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_b5.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/b5.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_db5.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/db5.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_d4.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/d4.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_gb5.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/gb5.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_g4.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/g4.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_c6.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/c6.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_a7.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/a7.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_e5.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/e5.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_a0.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/a0.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_f3.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/f3.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_ab2.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/ab2.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_eb5.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/eb5.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_g1.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/g1.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_b0.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/b0.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_db1.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/db1.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_e2.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/e2.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_eb1.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/eb1.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_ab1.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/ab1.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_gb1.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/gb1.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_b7.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/b7.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_db8.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/db8.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_bb5.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/bb5.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_a4.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/a4.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_f5.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/f5.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_d6.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/d6.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_ab5.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/ab5.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_c3.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/c3.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_a1.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/a1.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_g5.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/g5.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_gb4.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/gb4.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_eb4.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/eb4.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_b4.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/b4.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_f2.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/f2.mp3"
+    },
+    {
+        "merged": "/Users/souhridpal/.gradle/daemon/8.2/com.loopy.android.app-merged_res-57:/drawable_ic_launcher_foreground.xml.flat",
+        "source": "/Users/souhridpal/.gradle/daemon/8.2/com.loopy.android.app-main-59:/drawable/ic_launcher_foreground.xml"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_db4.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/db4.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_c7.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/c7.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_bb1.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/bb1.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_e6.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/e6.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_d3.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/d3.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_c4.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/c4.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_a5.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/a5.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_gb7.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/gb7.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_g2.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/g2.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_bb0.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/bb0.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_bb4.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/bb4.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_ab4.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/ab4.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_eb7.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/eb7.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_d5.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/d5.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_e3.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/e3.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_b6.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/b6.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_gb3.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/gb3.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_g6.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/g6.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_ab7.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/ab7.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_c8.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/c8.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_a2.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/a2.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_d2.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/d2.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_f1.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/f1.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_e7.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/e7.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_db7.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/db7.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_c1.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/c1.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_b3.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/b3.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_bb7.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/bb7.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_ab3.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/ab3.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_bb3.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/bb3.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_c5.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/c5.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_b2.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/b2.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_e4.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/e4.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_f7.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/f7.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_d1.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/d1.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_db3.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/db3.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_gb6.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/gb6.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_g3.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/g3.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_eb3.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/eb3.mp3"
+    },
+    {
+        "merged": "/Users/souhridpal/.gradle/daemon/8.2/com.loopy.android.app-merged_res-57:/mipmap-anydpi-v26_ic_launcher_round.xml.flat",
+        "source": "/Users/souhridpal/.gradle/daemon/8.2/com.loopy.android.app-main-59:/mipmap-anydpi-v26/ic_launcher_round.xml"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_bb6.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/bb6.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_ab6.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/ab6.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_eb6.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/eb6.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_gb2.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/gb2.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_g7.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/g7.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_f4.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/f4.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_db6.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/db6.mp3"
+    },
+    {
+        "merged": "com.loopy.android.app-merged_res-57:/raw_a6.mp3.flat",
+        "source": "com.loopy.android.app-main-59:/raw/a6.mp3"
+    }
+]

@@ -81,19 +81,11 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
 
-    // Serialization
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2")
-
     // DataStore
     implementation("androidx.datastore:datastore-preferences:1.0.0")
-
-    // Audio synthesis - using Oboe + SoundLoader
-    implementation("com.google.oboe:oboe:1.8.0")
     
     // MIDI handling is built into Android (android.media.midi)
-    
-    // For MP3 export
-    implementation("com.github.nickagas:android-mp3-recorder:1.0.0")
+    // Audio synthesis uses Android's built-in AudioTrack API
 
     // Testing
     testImplementation("junit:junit:4.13.2")

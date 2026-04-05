@@ -1,6 +1,7 @@
 package com.loopy.android
 
 import android.Manifest
+import android.content.Context
 import android.content.pm.PackageManager
 import android.media.midi.MidiManager
 import android.os.Build
@@ -57,11 +58,12 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun checkMidiSupport() {
-        val midiManager = getSystemService(MIDI_SERVICE) as MidiManager
-        val deviceInfos = midiManager.deviceInfos
-        
-        if (deviceInfos.isEmpty()) {
-            // No MIDI devices - user will need to connect one
+        val midiMgr = getSystemService(Context.MIDI_SERVICE) as? MidiManager
+        if (midiMgr != null) {
+            val devices = midiMgr.devices
+            if (devices.isEmpty()) {
+                // No MIDI devices - user will need to connect one
+            }
         }
     }
 

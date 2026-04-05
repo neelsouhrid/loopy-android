@@ -3,7 +3,6 @@ package com.loopy.android.data.audio
 import android.media.AudioAttributes
 import android.media.AudioFormat
 import android.media.AudioTrack
-import android.media.AudioManager
 import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -13,9 +12,12 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.math.PI
-import kotlin.math.exp
 import kotlin.math.pow
 import kotlin.math.sin
+import kotlin.math.exp
+import kotlin.math.sqrt
+import kotlin.math.max
+import kotlin.math.tanh
 
 @Singleton
 class AudioEngine @Inject constructor() {
@@ -111,13 +113,13 @@ class AudioEngine @Inject constructor() {
         val frequency = 440.0 * 2.0.pow((note - 69) / 12.0)
         
         // Normalized velocity (0-1)
-        val vel = velocity / 127.0
+        val vel = (velocity / 127.0).coerceIn(0.0, 1.0)
         
-        // ADSR envelope
-        val attackTime = 0.005  // 5ms attack
-        val decayTime = 0.1    // 100ms decay
-        val sustainLevel = 0.7 // 70% sustain
-        val releaseTimeSec = releaseTime ?: 0.3  // 300ms release
+        // Refined ADSR envelope for Piano
+        val attackTime = 0.003
+        val decayTime = 0.2
+        val sustainLevel = 0.4
+        val releaseTimeSec = releaseTime ?: 0.4
         
         val envelope = when {
             releaseTime != null -> {
@@ -135,27 +137,48 @@ class AudioEngine @Inject constructor() {
                 (vel - (vel - sustainLevel) * decayProgress).toFloat()
             }
             else -> {
-                // Sustain phase
-                (sustainLevel * vel).toFloat()
+                // Natural decay even during sustain
+                val sustainDecay = max(0.0, sustainLevel - (timeInSeconds - attackTime - decayTime) * 0.05)
+                (sustainDecay * vel).toFloat()
             }
         }
         
         if (envelope <= 0f) return 0f
         
-        // Generate waveform with harmonics (piano-like)
         var sample = 0.0
         
-        // Fundamental
-        sample += sin(2 * PI * frequency * timeInSeconds)
+        // Rich harmonic content with frequency-dependent decay (higher harmonics decay faster)
+        val harmonics = intArrayOf(1, 2, 3, 4, 5, 6, 8)
+        val amplitudes = doubleArrayOf(1.0, 0.7, 0.4, 0.25, 0.1, 0.05, 0.02)
+        val inharmonicity = 0.0001 // Slight stretching of harmonics typical in acoustic pianos
         
-        // Harmonics (decreasing amplitude)
-        sample += 0.5 * sin(2 * PI * frequency * 2 * timeInSeconds)
-        sample += 0.25 * sin(2 * PI * frequency * 3 * timeInSeconds)
-        sample += 0.125 * sin(2 * PI * frequency * 4 * timeInSeconds)
-        sample += 0.0625 * sin(2 * PI * frequency * 5 * timeInSeconds)
+        for (i in harmonics.indices) {
+            val h = harmonics[i]
+            val amp = amplitudes[i]
+            // Inharmonicity formula: f_n = n * f_1 * sqrt(1 + B * n^2)
+            val stretchedFreq = h * frequency * sqrt(1.0 + inharmonicity * h * h)
+            
+            // Higher frequencies decay much faster
+            val harmonicDecay = exp(-timeInSeconds * (h * 0.8))
+            
+            sample += amp * harmonicDecay * sin(2 * PI * stretchedFreq * timeInSeconds)
+        }
         
-        // Apply envelope
-        sample *= envelope
+        // Add chorus effect from natural multi-string detuning per key
+        val detuneFast = frequency * 1.002
+        val detuneSlow = frequency * 0.998
+        sample += 0.4 * exp(-timeInSeconds * 1.0) * sin(2 * PI * detuneFast * timeInSeconds)
+        sample += 0.4 * exp(-timeInSeconds * 1.0) * sin(2 * PI * detuneSlow * timeInSeconds)
+        
+        // Add subtle hammer strike
+        val hammerPhase = exp(-timeInSeconds * 40.0)
+        sample += 0.1 * hammerPhase * sin(2 * PI * (frequency * 0.5) * timeInSeconds)
+        
+        // Normalize 
+        sample *= 0.4 * envelope
+        
+        // Saturation/compression for warmth
+        sample = tanh(sample * 1.5)
         
         return sample.toFloat().coerceIn(-1f, 1f)
     }
@@ -181,11 +204,20 @@ class AudioEngine @Inject constructor() {
     }
 
     /**
+     * Represents an event for audio playback with timing information
+     */
+    data class PlaybackEvent(
+        val note: Int,
+        val velocity: Int,
+        val timestampMicros: Long
+    )
+
+    /**
      * Start continuous playback from an event queue
      * This is called during loop playback
      */
     fun startPlayback(
-        events: List<Pair<Int, Int>>, // note, velocity pairs
+        events: List<PlaybackEvent>,
         startTimeMicros: Long,
         loopDurationMicros: Long,
         onComplete: () -> Unit = {}
@@ -207,20 +239,20 @@ class AudioEngine @Inject constructor() {
                 // Calculate current position in the loop
                 val elapsedNanos = System.nanoTime() - startTimeNanos
                 val elapsedMicros = elapsedNanos / 1000
-                val loopPosition = (elapsedMicros % loopDurationMicros).toLong()
+                val loopPosition = (elapsedMicros % loopDurationMicros)
                 
                 // Find active notes at this position
                 val activeNotes = mutableSetOf<Int>()
-                val noteEvents = mutableListOf<Triple<Int, Int, Long>>() // note, velocity, timestamp
+                val noteEvents = mutableListOf<PlaybackEvent>()
                 
-                // Process all events
-                for ((note, velocity, timestamp) in events) {
-                    if (timestamp >= loopPosition - 50000 && timestamp <= loopPosition + 50000) {
-                        if (velocity > 0) {
-                            activeNotes.add(note)
-                            noteEvents.add(Triple(note, velocity, timestamp))
+                // Process all events - find those near the current loop position
+                for (event in events) {
+                    if (event.timestampMicros >= loopPosition - 50000 && event.timestampMicros <= loopPosition + 50000) {
+                        if (event.velocity > 0) {
+                            activeNotes.add(event.note)
+                            noteEvents.add(event)
                         } else {
-                            activeNotes.remove(note)
+                            activeNotes.remove(event.note)
                         }
                     }
                 }
@@ -230,8 +262,8 @@ class AudioEngine @Inject constructor() {
                     val currentTimeSeconds = (sampleIndex + i).toDouble() / SAMPLE_RATE
                     var sample = 0f
                     
-                    for ((note, velocity, _) in noteEvents) {
-                        sample += generatePianoSample(note, velocity, currentTimeSeconds)
+                    for (event in noteEvents) {
+                        sample += generatePianoSample(event.note, event.velocity, currentTimeSeconds)
                     }
                     
                     buffer[i] = (sample.coerceIn(-1f, 1f) * Short.MAX_VALUE * 0.3).toInt().toShort()
