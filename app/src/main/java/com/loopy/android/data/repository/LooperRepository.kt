@@ -237,8 +237,9 @@ class LooperRepository @Inject constructor(
         val track = session.tracks[_selectedTrackIndex.value]
         
         if (_mode.value == LooperMode.OVERDUB && track.isNotEmpty) {
-            // In overdub mode, keep existing events
-            recordingEvents.addAll(track.events)
+            // In overdub mode, do NOT pre-load existing events into recordingEvents.
+            // Only new events from this session go into recordingEvents.
+            // Merging with existing events happens in saveRecording().
             
             // Play all non-empty tracks including the one we are overdubbing
             val nonEmptyTracks = session.tracks.filter { it.isNotEmpty }
@@ -325,8 +326,12 @@ class LooperRepository @Inject constructor(
                 
                 // Check for loop restart
                 if (loopPosition < lastLoopPosition) {
-                    // Loop restarted - send all notes off to prevent stuck notes
-                    midiManager.allNotesOff()
+                    // Loop restarted - send only All Notes Off (CC#123) per channel.
+                    // Do NOT send Reset All Controllers (CC#121) which would reset
+                    // pitch bend, modulation, expression, and sustain — causing wobbles.
+                    for (ch in 0..15) {
+                        midiManager.controlChange(ch, 123, 0) // All Notes Off only
+                    }
                 }
                 
                 // Check which notes should be playing at this precise delta slice
@@ -355,6 +360,9 @@ class LooperRepository @Inject constructor(
                                 audioEngine.playNote(event.note, event.velocity)
                             } else if (event.type == MidiEventType.NOTE_OFF && event.note != null) {
                                 midiManager.noteOff(track.id, event.note, event.velocity ?: 0)
+                            } else if (event.type == MidiEventType.CONTROL_CHANGE && event.note != null && event.value != null) {
+                                // Replay control change events (sustain pedal, etc.)
+                                midiManager.controlChange(track.id, event.note, event.value)
                             }
                         }
                     }
@@ -419,12 +427,15 @@ class LooperRepository @Inject constructor(
         val currentTime = System.nanoTime() / 1000 // microseconds
         var timestamp = currentTime - recordingStartTime
         
-        // In overdub mode, wrap timestamp to loop duration
+        // In overdub mode, wrap timestamp to loop duration (in real time)
         if (_mode.value == LooperMode.OVERDUB) {
             val session = _currentSession.value
             val longestDuration = session?.longestTrackDuration ?: 0L
             if (longestDuration > 0) {
-                timestamp = timestamp % longestDuration
+                // longestDuration is stored at 120 BPM base; scale to real time for wrapping
+                val currentTempoRatio = (session?.tempo ?: 120).toDouble() / 120.0
+                val realTimeDuration = (longestDuration / currentTempoRatio).toLong()
+                timestamp = timestamp % realTimeDuration
             }
         }
         
@@ -484,6 +495,39 @@ class LooperRepository @Inject constructor(
                         recordingEvents.add(MidiEvent(MidiEventType.NOTE_OFF, channel, d1, d2, timestampMicros = timestamp))
                     }
                     midiManager.noteOff(_selectedTrackIndex.value, d1, d2)
+                } else if (messageType == 0xB0) { // Control Change
+                    // Only record musically relevant CCs — skip system CCs
+                    // (CC#121 Reset All Controllers, CC#123 All Notes Off, etc.)
+                    // which may be echoed back by the keyboard and accumulate across overdubs
+                    val isMusicalCC = d1 in setOf(
+                        1,   // Modulation
+                        11,  // Expression
+                        64,  // Sustain pedal
+                        66,  // Sostenuto
+                        67   // Soft pedal
+                    )
+                    if (_playbackState.value == PlaybackState.RECORDING && isMusicalCC) {
+                        recordingEvents.add(
+                            MidiEvent(
+                                type = MidiEventType.CONTROL_CHANGE,
+                                channel = channel,
+                                note = d1,      // controller number
+                                velocity = null,
+                                value = d2,     // controller value (0 = off, 127 = on)
+                                timestampMicros = timestamp
+                            )
+                        )
+                    }
+                    // Forward all CCs to MIDI output immediately for live pass-through
+                    midiManager.controlChange(_selectedTrackIndex.value, d1, d2)
+                } else if (messageType == 0xE0) { // Pitch Bend
+                    // Forward pitch bend live but do NOT record it —
+                    // recording pitch bend causes wobbles during overdub playback
+                    midiManager.sendMidi(byteArrayOf(
+                        (0xE0 or channel).toByte(),
+                        d1.toByte(),
+                        d2.toByte()
+                    ))
                 }
             } else if (dataBytesNeeded == 1 && i < end) {
                 val d1 = data[i].toInt() and 0xFF
@@ -508,14 +552,14 @@ class LooperRepository @Inject constructor(
         val elapsed = (System.nanoTime() / 1000) - recordingStartTime
         val currentTempoRatio = session.tempo.toDouble() / 120.0
         
-        // Scale the events back to 120 BPM absolute time to store in the array uniformly
-        val storedEvents = recordingEvents.map { it.copy(timestampMicros = (it.timestampMicros * currentTempoRatio).toLong()) }
+        // Scale only the NEW events back to 120 BPM absolute time to store uniformly
+        val scaledNewEvents = recordingEvents.map { it.copy(timestampMicros = (it.timestampMicros * currentTempoRatio).toLong()) }
         
-        var combinedEvents = storedEvents
-        // If overdubbing, safely merge the new events with the existing ones!
+        var combinedEvents = scaledNewEvents
+        // If overdubbing, merge new events with the existing ones (which are already at 120 BPM base)
         if (_mode.value == LooperMode.OVERDUB) {
             val existingEvents = session.tracks.find { it.id == _selectedTrackIndex.value }?.events ?: emptyList()
-            combinedEvents = (existingEvents + storedEvents).sortedBy { it.timestampMicros }
+            combinedEvents = (existingEvents + scaledNewEvents).sortedBy { it.timestampMicros }
         }
         
         // Determine track duration: use the existing longest duration (so loops remain synced),
